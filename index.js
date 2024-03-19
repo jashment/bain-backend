@@ -5,13 +5,16 @@ const axios = require('axios')
 const { getDistance, convertDistance } = require('geolib')
 const Distance = require('./schemas')
 const mongoose = require('mongoose')
+const dotenv = require('dotenv')
+
+dotenv.config()
 
 const app = express()
 
 app.use(bodyParser.json())
 app.use(cors())
 
-const uri = "mongodb+srv://jordanashment:RGKoM4u2Fjha32Ze@bain.jpvdyr9.mongodb.net/Bain?retryWrites=true&w=majority&appName=Bain";
+const uri = `mongodb+srv://${process.env.USERNAME}:${process.env.PASSWORD}@bain.jpvdyr9.mongodb.net/Bain?retryWrites=true&w=majority&appName=Bain`
 const db = mongoose.connection
 
 db.on('error', console.error.bind(console, 'MongoDB connection error:'))
@@ -49,7 +52,7 @@ app.post('/calculate-distance', async (req, res) => {
     mongoose.connect(uri).then(() => {
       console.log('MongoDB connected')
     })
-    
+
     const distanceToSave = new Distance({
       sourceAddress,
       destinationAddress,
