@@ -26,7 +26,7 @@ app.post('/calculate-distance', async (req, res) => {
 
     const onlySourceAddress = sourceAddress.replace(/\b(Suite|suite|apt|Apt|APT|Apartment|apartment|unit|Unit)\s*\d+\b/i, '')
     const onlyDestinationAddress = destinationAddress.replace(/\b(Suite|suite|apt|Apt|APT|Apartment|apartment|unit|Unit)\s*\d+\b/i, '')
-    console.log(onlySourceAddress, onlyDestinationAddress)
+
     const encodedSourceAddress = encodeURIComponent(onlySourceAddress)
     const encodedDestinationAddress = encodeURIComponent(onlyDestinationAddress)
 
@@ -41,7 +41,7 @@ app.post('/calculate-distance', async (req, res) => {
       latitude: parseFloat(nominatimDestinationResponse.data[0].lat),
       longitude: parseFloat(nominatimDestinationResponse.data[0].lon)
     }
-    console.log(nominatimSourceResponse.data[0].lat, nominatimDestinationResponse.data[0].lon)
+
     const totalDistance = getDistance(sourceCoordinates, destinationCoordinates)
     if (unit === "both") {
       distance = { mi: convertDistance(totalDistance.toFixed(2), "mi").toFixed(2), km: convertDistance(totalDistance.toFixed(2), "km").toFixed(2) }
@@ -63,12 +63,26 @@ app.post('/calculate-distance', async (req, res) => {
     await distanceToSave.save().then((saved) => {
       console.log('Distance saved', saved)
     }).catch((err) => {
-      console.log(err)
+      console.error(err)
     })
 
     res.send(distance).status(200)
   } catch (error) {
-    console.log(error)
+    console.error(error)
+    res.send(`There was an error: ${error}`).status(500)
+  }
+})
+
+app.get('/historical-queries', async (req, res) => {
+  try {
+    mongoose.connect(uri).then(() => {
+      console.log('MongoDB connected')
+    })
+    const historicalQueriesAndDistances = await Distance.find({})
+
+    res.send(historicalQueriesAndDistances).status(200)
+  } catch (error) {
+    console.error(error)
     res.send(`There was an error: ${error}`).status(500)
   }
 })
