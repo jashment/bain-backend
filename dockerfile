@@ -1,0 +1,19 @@
+FROM node:18 AS build
+
+WORKDIR /app
+
+COPY . .
+
+RUN npm install
+
+ARG USERNAME
+
+ENV USERNAME=$USERNAME
+
+ARG PASSWORD
+
+ENV PASSWORD=$PASSWORD
+
+EXPOSE 3000
+
+CMD ["npm", "run", "start"]
