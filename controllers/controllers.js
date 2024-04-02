@@ -2,19 +2,16 @@ const mongoose = require('mongoose')
 const axios = require('axios')
 const { getDistance, convertDistance } = require('geolib')
 const Distance = require('../schemas')
-const dotenv = require('dotenv')
-
-dotenv.config()
-
-const uri = `mongodb+srv://${process.env.USERNAME}:${process.env.PASSWORD}@bain.jpvdyr9.mongodb.net/Bain?retryWrites=true&w=majority&appName=Bain`
-const db = mongoose.connection
-
-db.on('error', console.error.bind(console, 'MongoDB connection error:'))
 
 const calculateDistance = async (req, res) => {
   try {
     let distance
     const { sourceAddress, destinationAddress, unit } = req.body
+
+    if (!sourceAddress || !destinationAddress) {
+      console.log('No address provided')
+      return res.send('Please provide source or destination address').status(400)
+    }
 
     const onlySourceAddress = sourceAddress.replace(/\b(Suite|suite|apt|Apt|APT|Apartment|apartment|unit|Unit)\s*\d+\b/i, '')
     const onlyDestinationAddress = destinationAddress.replace(/\b(Suite|suite|apt|Apt|APT|Apartment|apartment|unit|Unit)\s*\d+\b/i, '')
@@ -41,10 +38,6 @@ const calculateDistance = async (req, res) => {
       distance = { [unit]: convertDistance(totalDistance.toFixed(2), unit).toFixed(2) }
     }
 
-    mongoose.connect(uri).then(() => {
-      console.log('MongoDB connected')
-    })
-
     const distanceToSave = new Distance({
       sourceAddress,
       destinationAddress,
@@ -54,28 +47,26 @@ const calculateDistance = async (req, res) => {
     
     await distanceToSave.save().then((saved) => {
       console.log('Distance saved', saved)
+      return res.send(distance).status(200)
     }).catch((err) => {
       console.error(err)
+      return res.send(`There was an error saving distance: ${err}`).status(500)
     })
 
-    res.send(distance).status(200)
   } catch (error) {
     console.error(error)
-    res.send(`There was an error: ${error}`).status(500)
+    return res.send(`There was an error: ${error}`).status(500)
   }
 }
 
 const getHistoricalQueries = async (req, res) => {
   try {
-    mongoose.connect(uri).then(() => {
-      console.log('MongoDB connected')
-    })
     const historicalQueriesAndDistances = await Distance.find({})
 
-    res.send(historicalQueriesAndDistances).status(200)
+    return res.send(historicalQueriesAndDistances).status(200)
   } catch (error) {
     console.error(error)
-    res.send(`There was an error: ${error}`).status(500)
+    return res.send(`There was an error: ${error}`).status(500)
   }
 }
 
