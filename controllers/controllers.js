@@ -3,6 +3,11 @@ const axios = require('axios')
 const { getDistance, convertDistance } = require('geolib')
 const Distance = require('../schemas')
 
+const isValidUSAddress =(address) => {
+    const usAddressRegex = /^(?=.*\b\d{5}\b)(?=.*\b[A-Z]{2}\b)(?=.*\b(?:\d+\s+)?(?:[A-Z]+\s+){0,3}[A-Z]+\b)(?!.*\bP\.\s*O\.\s*Box\b).*$/i;
+    return usAddressRegex.test(address);
+}
+
 const calculateDistance = async (req, res) => {
   try {
     let distance
@@ -10,11 +15,19 @@ const calculateDistance = async (req, res) => {
 
     if (!sourceAddress || !destinationAddress) {
       console.log('No address provided')
-      return res.send('Please provide source or destination address').status(400)
+      return res.status(400).send('Please provide source or destination address')
     }
 
     const onlySourceAddress = sourceAddress.replace(/\b(Suite|suite|apt|Apt|APT|Apartment|apartment|unit|Unit)\s*\d+\b/i, '')
     const onlyDestinationAddress = destinationAddress.replace(/\b(Suite|suite|apt|Apt|APT|Apartment|apartment|unit|Unit)\s*\d+\b/i, '')
+
+    console.log(onlySourceAddress, onlyDestinationAddress)
+    console.log(isValidUSAddress(onlySourceAddress), isValidUSAddress(onlyDestinationAddress))
+
+    if (!isValidUSAddress(onlySourceAddress) || !isValidUSAddress(onlyDestinationAddress)) {
+      console.log('Not a valid address')
+      return res.status(400).send('Not a valid address')
+    }
 
     const encodedSourceAddress = encodeURIComponent(onlySourceAddress)
     const encodedDestinationAddress = encodeURIComponent(onlyDestinationAddress)
@@ -30,6 +43,7 @@ const calculateDistance = async (req, res) => {
       latitude: parseFloat(nominatimDestinationResponse.data[0].lat),
       longitude: parseFloat(nominatimDestinationResponse.data[0].lon)
     }
+    // console.log(nominatimSourceResponse, nominatimDestinationResponse)
 
     const totalDistance = getDistance(sourceCoordinates, destinationCoordinates)
     if (unit === "both") {
@@ -47,15 +61,15 @@ const calculateDistance = async (req, res) => {
     
     await distanceToSave.save().then((saved) => {
       console.log('Distance saved', saved)
-      return res.send(distance).status(200)
+      return res.status(200).send(distance)
     }).catch((err) => {
       console.error(err)
-      return res.send(`There was an error saving distance: ${err}`).status(500)
+      return res.status(500).send(`There was an error saving distance: ${err}`)
     })
 
   } catch (error) {
     console.error(error)
-    return res.send(`There was an error: ${error}`).status(500)
+    return res.status(500).send(`There was an error: ${error}`)
   }
 }
 
@@ -63,10 +77,10 @@ const getHistoricalQueries = async (req, res) => {
   try {
     const historicalQueriesAndDistances = await Distance.find({})
 
-    return res.send(historicalQueriesAndDistances).status(200)
+    return res.status(200).send(historicalQueriesAndDistances)
   } catch (error) {
     console.error(error)
-    return res.send(`There was an error: ${error}`).status(500)
+    return res.status(500).send(`There was an error: ${error}`)
   }
 }
 
